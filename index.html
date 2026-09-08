@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio — AI/ML & Systems Projects</title>
+<meta name="description" content="Four systems and ML projects: a retail BI/ML pipeline, a physics-informed sensor calibration engine, a self-learning cache, and a concurrent trading simulator.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="grain"></div>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a href="#top" class="wordmark">[Your <span>Name</span>]</a>
+    <nav class="mainnav">
+      <a href="#log">Log</a>
+      <a href="#work">Projects</a>
+      <a href="#instruments">Toolset</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero wrap">
+    <p class="kicker">Field notes — Electronics &amp; Computer Science, SAKEC · Second Year</p>
+    <h1>I build things that read live data<br>and make a decision from it.</h1>
+    <p class="hero-sub">
+      Four independent projects spanning a retail ML pipeline, a physics‑informed
+      sensor‑calibration engine, a self‑learning cache written in C, and a
+      concurrent trading simulator. Every number on this page comes from
+      running the actual code — screenshots below are captured live, not mocked.
+    </p>
+
+    <dl class="readout">
+      <div><dt>Rows processed (largest pipeline)</dt><dd>500,372</dd></div>
+      <div><dt>Real ground-truth sensor readings</dt><dd>126,997</dd></div>
+      <div><dt>Core data structures implemented in C</dt><dd>12</dd></div>
+      <div><dt>Concurrent threads coordinated (trading sim)</dt><dd>4 classes</dd></div>
+    </dl>
+  </section>
+
+  <!-- ============ LOG / ABOUT ============ -->
+  <section id="log" class="log wrap">
+    <div class="log-grid">
+      <div class="log-label">
+        <span class="tag">01</span>
+        <h2>About this notebook</h2>
+      </div>
+      <div class="log-body">
+        <p>
+          I'm a second-year Electronics &amp; Computer Science student at
+          SAKEC. I like the seam between systems programming and machine
+          learning — the point where a model's prediction has to survive
+          contact with a real clock, a real cache, or a real sensor that
+          drifts.
+        </p>
+        <p>
+          The four projects here were built independently, outside
+          coursework, at different points over the past year. None of them
+          are finished products — they're working prototypes with honest
+          numbers attached. Where a project is a proof-of-concept rather
+          than something production-hardened, I've said so directly.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 1: AMAZON AI DASHBOARD ============ -->
+  <section id="work" class="project wrap">
+    <div class="project-head">
+      <span class="tag">02 — retail analytics &amp; ML</span>
+      <h2>Zenthos BI — AI Command Center</h2>
+      <p class="project-dek">
+        An end-to-end retail intelligence pipeline: synthetic e-commerce data
+        generation, a MySQL warehouse, five trained ML models, and a live
+        executive dashboard built on top.
+      </p>
+    </div>
+
+    <figure class="shot">
+      <img src="assets/amazon_command_center.png" alt="AI Command Center dashboard showing seven ML engines online with live metrics" loading="lazy">
+      <figcaption>Live capture of the executive dashboard — <code>ai_command_center.html</code> rendered and screenshotted from the actual project code.</figcaption>
+    </figure>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          Generates a realistic Amazon-style retail dataset (orders, customers,
+          inventory, product catalog), loads it into MySQL, then trains a
+          bank of models on top: a best-seller classifier, a demand
+          forecaster, a price-elasticity recommender, an inventory
+          optimizer, and an executive summarization layer that turns model
+          output into plain-language recommendations. The dashboard is a
+          from-scratch HTML/JS front end, not a Power BI export.
+        </p>
+        <h3>Real numbers, from the actual run</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Orders generated &amp; loaded</td><td>500,372 rows</td></tr>
+            <tr><td>Customer records</td><td>50,001 rows</td></tr>
+            <tr><td>Product catalog (post-cleaning)</td><td>1,357 SKUs</td></tr>
+            <tr><td>Best-seller classifier — held-out accuracy</td><td>90.1%</td></tr>
+            <tr><td>Best-seller classifier — precision / recall</td><td>90.5% / 77.0%</td></tr>
+            <tr><td>Train / test split</td><td>1,084 / 272 samples</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          The bold numbers on the dashboard itself (94.8% "score", 96.4%
+          "forecast accuracy") are the UI's live-telemetry display layer —
+          the metric I'd stand behind in an interview is the 90.1% test
+          accuracy from the actual saved <code>pipeline_metrics.json</code>
+          classification report, shown above.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Python data generation &amp; cleaning scripts (<code>Python/</code>)</li>
+          <li>MySQL warehouse with a dedicated import pipeline</li>
+          <li>scikit-learn models: classifier + regressors for forecast/price/inventory (<code>AI/</code>)</li>
+          <li>A desktop control GUI (Tkinter) for running the pipeline end-to-end</li>
+          <li>Static HTML/CSS/JS executive dashboard, no external charting framework</li>
+        </ul>
+        <div class="tags">
+          <span>Python</span><span>scikit-learn</span><span>MySQL</span><span>Pandas</span><span>Tkinter</span><span>HTML/CSS/JS</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 2: AERIS ============ -->
+  <section class="project wrap alt">
+    <div class="project-head">
+      <span class="tag">03 — environmental sensing &amp; calibration</span>
+      <h2>AERIS — Physics-Informed Air Quality Calibration</h2>
+      <p class="project-dek">
+        Low-cost air quality sensors (the kind that cost ₹2,000 instead of
+        ₹20,00,000) drift badly. AERIS trains a calibration model that
+        corrects them against real government reference monitors, then
+        streams the correction live.
+      </p>
+    </div>
+
+    <figure class="shot">
+      <img src="assets/aeris_dashboard.png" alt="AERIS live dashboard showing calibrated vs raw sensor readings and a drift alert" loading="lazy">
+      <figcaption>Live capture — the FastAPI + WebSocket service actually running and streaming replayed sensor data through the trained calibration model.</figcaption>
+    </figure>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          Stage A pulls two years of regional reanalysis weather/pollution
+          data (Open-Meteo CAMS + ERA5) and pairs it against real ground
+          station readings from CPCB, MPCB, and IITM monitors across Mumbai.
+          Stage B simulates a low-cost sensor's physical response and drift
+          characteristics. Stage C trains a LightGBM calibration model that
+          maps "what the cheap sensor reads" to "what the government
+          monitor would read," plus a separate multi-horizon forecasting
+          model. A FastAPI service replays the dataset in real time over a
+          WebSocket so the dashboard shows raw vs. calibrated vs.
+          ground-truth as a live stream, including drift-alert detection.
+        </p>
+        <h3>Real numbers, from the live run</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Regional reanalysis records (Tier 1, 2-yr hourly)</td><td>175,440 rows</td></tr>
+            <tr><td>Real ground-station records (Tier 2, 8 stations)</td><td>126,997 rows</td></tr>
+            <tr><td>Paired overlap timestamps for calibration</td><td>50,372 hours</td></tr>
+            <tr><td>Raw sensor MAE vs. calibrated MAE (live demo run)</td><td>111.8 → 1.4 µg/m³</td></tr>
+            <tr><td>Cumulative error reduction from calibration</td><td>98.7%</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          This is a research/demo-grade project, not deployed hardware —
+          the "sensor" stream is a physics-based simulation replaying the
+          Stage B dataset, built specifically so it can swap to a real
+          ESP32 + PMS5003/MQ135 sensor later without changing the ML or
+          server code.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Two-tier data acquisition &amp; merge pipeline (<code>a1</code>–<code>a3</code> stages)</li>
+          <li>Sensor physics simulation with induced drift (Stage B)</li>
+          <li>LightGBM calibration model + separate multi-horizon forecasting model</li>
+          <li>FastAPI backend with an async WebSocket broadcaster</li>
+          <li>SQLite for local persistence; designed for optional cloud sync</li>
+          <li>Vanilla JS + Chart.js live dashboard, CPCB AQI computed in real time</li>
+        </ul>
+        <div class="tags">
+          <span>Python</span><span>LightGBM</span><span>FastAPI</span><span>WebSockets</span><span>Pandas</span><span>SQLite</span><span>Chart.js</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 3: NEUROCACHE ============ -->
+  <section class="project wrap">
+    <div class="project-head">
+      <span class="tag">04 — systems programming &amp; ML</span>
+      <h2>NeuroCache — A Self-Learning Cache in C</h2>
+      <p class="project-dek">
+        Standard caches evict by fixed rules — least-recently-used, or
+        least-frequently-used. NeuroCache replaces the rule with a small
+        online model that predicts reuse probability per key, ranked live
+        by an AVL tree.
+      </p>
+    </div>
+
+    <figure class="shot">
+      <img src="assets/neurocache_gui_tab2.png" alt="NeuroCache benchmark comparison showing LRU, LFU, and NeuroCache hit rates" loading="lazy">
+      <figcaption>Live capture of the comparison view, showing the project's own 50,000-event C benchmark baked into the app.</figcaption>
+    </figure>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          NeuroCache is built to cover a full data-structures-and-algorithms
+          syllabus honestly — twelve structures (stacks, queues, singly and
+          doubly linked lists, an AVL tree, hash tables with both chaining
+          and open addressing, graphs with BFS/DFS/topo-sort, and four
+          sorting algorithms) all doing real work inside one caching engine,
+          not built as separate toy demos. On top of that sits the actual
+          idea: a logistic-regression-style online learner scores each
+          cached key's reuse probability, and an AVL tree keeps eviction
+          candidates ranked in O(log n) as those scores update. A companion
+          Python daemon applies the same principle to real OS process
+          priority and RAM trimming, cross-platform (Windows/Linux).
+        </p>
+        <h3>Real numbers, from the project's own benchmark</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Benchmark size</td><td>50,000 access events</td></tr>
+            <tr><td>Hit rate — Zipfian workload (LRU / LFU / NeuroCache)</td><td>93.7% / 94.9% / 94.7%</td></tr>
+            <tr><td>Hit rate — concept-drift workload</td><td>91.6% / 52.5% / 91.2%</td></tr>
+            <tr><td>NeuroCache advantage over LFU under drift</td><td>+38.7 points</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          NeuroCache doesn't beat a tuned LFU on a stable Zipfian
+          workload — it's essentially tied. The real result is that it
+          holds LRU-like adaptability when the workload's access pattern
+          shifts, which is exactly where LFU falls apart.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Pure C core: 12 data structures, no external DSA libraries</li>
+          <li>AVL tree keeps eviction order ranked as ML scores update live</li>
+          <li>Python trace generators (Zipfian, drift, uniform) for reproducible benchmarks</li>
+          <li>Cross-platform system daemon applying the same model to OS process scheduling</li>
+          <li>Tkinter GUI for live visualization and side-by-side comparison</li>
+        </ul>
+        <div class="tags">
+          <span>C</span><span>Python</span><span>AVL Trees</span><span>Hashing</span><span>Tkinter</span><span>Online SGD</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 4: MP3 STOCK SIM ============ -->
+  <section class="project wrap alt">
+    <div class="project-head">
+      <span class="tag">05 — concurrent systems, Java</span>
+      <h2>Real-Time Multithreaded Stock Trading Simulator</h2>
+      <p class="project-dek">
+        A Java Swing desktop app simulating a live market: independent
+        price threads, an order-matching engine, and a persisted trade
+        history — built to be honest about its concurrency, not just its UI.
+      </p>
+    </div>
+
+    <figure class="shot">
+      <img src="assets/mp3_gui.png" alt="Stock trading simulator dashboard showing live portfolio, a price chart, and buy/sell controls" loading="lazy">
+      <figcaption>Live capture of the running desktop application, mid-session.</figcaption>
+    </figure>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          Each of twelve simulated instruments (stocks and a few crypto
+          tickers) runs its own scheduled price thread following a
+          geometric Brownian motion random walk, ticking every 1.5 seconds
+          independently of the UI thread. Orders go through a
+          priority-queue-based limit order book that matches trades without
+          blocking the interface, and every execution is persisted to a
+          database asynchronously so the trade log never stalls the Swing
+          event thread.
+        </p>
+        <h3>What I'd highlight in an interview</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Simulated instruments, independently threaded</td><td>12</td></tr>
+            <tr><td>Price update interval per instrument</td><td>1.5s (GBM walk)</td></tr>
+            <tr><td>Named reentrant locks protecting shared state</td><td>4</td></tr>
+            <tr><td>Persistence layer</td><td>Embedded H2 (MySQL-compatible mode)</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          The interesting part of this project isn't the GUI, it's the
+          locking discipline underneath it — a dedicated lock per stock's
+          price history, per trader's portfolio, and per order book, so
+          concurrent order execution can't corrupt shared state or
+          double-fill an order.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Java Swing GUI, strictly separated from the market simulation logic</li>
+          <li><code>ScheduledExecutorService</code> per-stock price threads</li>
+          <li><code>PriorityQueue</code>-based order book for limit-order matching</li>
+          <li><code>ReentrantLock</code>s guarding stock, trader, and order-book state</li>
+          <li>Embedded H2 database (MySQL-compatible mode) for trade persistence</li>
+          <li>Custom checked exceptions for invalid orders / insufficient funds</li>
+        </ul>
+        <div class="tags">
+          <span>Java</span><span>Swing</span><span>Concurrency</span><span>JDBC</span><span>H2 / MySQL</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TOOLSET ============ -->
+  <section id="instruments" class="instruments wrap">
+    <span class="tag">06</span>
+    <h2>Toolset, by way of these four projects</h2>
+    <div class="instrument-grid">
+      <div>
+        <h4>Languages</h4>
+        <p>Python, Java, C, SQL</p>
+      </div>
+      <div>
+        <h4>Machine learning</h4>
+        <p>scikit-learn, LightGBM, feature engineering, online/SGD learning, model evaluation</p>
+      </div>
+      <div>
+        <h4>Data &amp; backend</h4>
+        <p>Pandas, MySQL, SQLite, FastAPI, WebSockets, ETL pipeline design</p>
+      </div>
+      <div>
+        <h4>Systems</h4>
+        <p>Core data structures in C, multithreading &amp; locking in Java, cross-platform process control</p>
+      </div>
+      <div>
+        <h4>Interfaces</h4>
+        <p>Tkinter, Java Swing, vanilla HTML/CSS/JS dashboards, Chart.js</p>
+      </div>
+      <div>
+        <h4>Currently learning</h4>
+        <p>Deeper time-series forecasting, model deployment/serving, and cleaner MLOps practice around these projects</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section id="contact" class="contact wrap">
+    <span class="tag">07</span>
+    <h2>Get in touch</h2>
+    <p>
+      Open to internship and project opportunities in AI/ML and applied
+      systems work.
+    </p>
+    <div class="contact-links">
+      <a href="mailto:REPLACE_WITH_YOUR_EMAIL">[ your.email@example.com ]</a>
+      <a href="#" target="_blank" rel="noopener">[ github.com/your-username ]</a>
+      <a href="#" target="_blank" rel="noopener">[ linkedin.com/in/your-username ]</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer wrap">
+  <p>Built &amp; documented from the original project source — every screenshot on this page is a live capture of running code.</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
