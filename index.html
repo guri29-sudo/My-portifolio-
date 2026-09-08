@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gurcharan Singh Nanra — Systems &amp; ML Field Notebook</title>
+<meta name="description" content="Four systems and ML projects: a retail BI/ML pipeline, a physics-informed sensor calibration engine, a self-learning cache, and a concurrent trading simulator.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root{
+  --bg:#0b0e14;
+  --panel:#12161f;
+  --panel-raised:#161b26;
+  --line:rgba(230,236,247,0.09);
+  --line-strong:rgba(230,236,247,0.16);
+  --ink:#e7ecf6;
+  --ink-dim:#9aa4b8;
+  --ink-faint:#69728a;
+  --amber:#e8a33d;
+  --teal:#48b8ac;
+  --serif:'Source Serif 4', serif;
+  --sans:'Inter', sans-serif;
+  --mono:'IBM Plex Mono', monospace;
+  color-scheme: dark;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 24px;}
+a{color:inherit;}
+img,canvas{max-width:100%; display:block;}
+
+/* faint scanline / grain texture, static, no motion */
+.grain{
+  position:fixed; inset:0; pointer-events:none; z-index:1;
+  background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode:overlay;
+}
+
+/* ---------------- header ---------------- */
+.site-header{
+  position:sticky; top:0; z-index:40;
+  background:rgba(11,14,20,0.82);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.header-row{display:flex; align-items:center; justify-content:space-between; height:64px;}
+.wordmark{font-family:var(--serif); font-size:1.05rem; text-decoration:none; letter-spacing:0.01em;}
+.wordmark span{color:var(--ink-dim); font-weight:400;}
+.mainnav{display:flex; gap:28px;}
+.mainnav a{font-family:var(--mono); font-size:0.82rem; text-decoration:none; color:var(--ink-dim); border-bottom:1px solid transparent; padding-bottom:2px; transition:color .15s, border-color .15s;}
+.mainnav a:hover{color:var(--ink); border-color:var(--line-strong);}
+.nav-toggle{display:none; background:none; border:1px solid var(--line-strong); border-radius:6px; width:40px; height:40px; color:var(--ink); font-size:1.1rem; cursor:pointer;}
+
+@media (max-width:720px){
+  .mainnav{
+    position:fixed; top:64px; left:0; right:0;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    flex-direction:column; gap:0; padding:8px 24px 16px;
+    transform:translateY(-8px); opacity:0; visibility:hidden;
+    transition:transform .2s ease, opacity .2s ease, visibility .2s;
+  }
+  .mainnav.open{transform:translateY(0); opacity:1; visibility:visible;}
+  .mainnav a{padding:12px 0; border-bottom:1px solid var(--line);}
+  .nav-toggle{display:block;}
+}
+
+/* ---------------- hero ---------------- */
+.hero{position:relative; padding:64px 24px 40px; overflow:visible;}
+.hero-scene-holder{
+  position:absolute; top:-40px; right:-40px; width:min(52vw,520px); height:min(52vw,520px);
+  z-index:0; opacity:0.9; pointer-events:none;
+}
+#hero-canvas{width:100%; height:100%;}
+.hero-content{position:relative; z-index:2; max-width:640px;}
+.kicker{font-family:var(--mono); font-size:0.78rem; color:var(--amber); margin:0 0 18px; letter-spacing:0.02em;}
+h1{
+  font-family:var(--serif); font-weight:600;
+  font-size:clamp(1.9rem, 4.4vw, 3rem);
+  line-height:1.14; margin:0 0 20px; letter-spacing:-0.01em;
+}
+.hero-sub{color:var(--ink-dim); font-size:1.02rem; max-width:56ch; margin:0 0 8px;}
+
+@media (max-width:720px){
+  .hero-scene-holder{position:relative; inset:auto; width:100%; height:220px; margin-bottom:8px; opacity:0.85;}
+  .hero{padding-top:32px;}
+}
+
+/* ---------------- stat tiles (flip) ---------------- */
+.stats-section{padding:8px 24px 56px;}
+.stats-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; gap:8px;}
+.stats-head h2{font-family:var(--mono); font-size:0.82rem; text-transform:none; color:var(--ink-dim); margin:0; font-weight:500;}
+.stats-hint{font-family:var(--mono); font-size:0.72rem; color:var(--ink-faint);}
+.stat-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(190px,1fr)); gap:12px;
+  perspective:1200px;
+}
+.stat-tile{
+  position:relative; height:132px; cursor:pointer;
+}
+.stat-tile-inner{
+  position:relative; width:100%; height:100%;
+  transform-style:preserve-3d; transition:transform .5s cubic-bezier(.2,.8,.2,1);
+}
+.stat-tile.flipped .stat-tile-inner{transform:rotateY(180deg);}
+.stat-face{
+  position:absolute; inset:0; backface-visibility:hidden;
+  border:1px solid var(--line); border-radius:10px; background:var(--panel);
+  padding:18px; display:flex; flex-direction:column; justify-content:space-between;
+}
+.stat-face.front .stat-value{font-family:var(--mono); font-size:1.7rem; color:var(--ink); font-weight:500;}
+.stat-face.front .stat-label{color:var(--ink-dim); font-size:0.82rem;}
+.stat-face.back{transform:rotateY(180deg); background:var(--panel-raised); border-color:var(--line-strong);}
+.stat-face.back .stat-context{font-size:0.82rem; color:var(--ink-dim); line-height:1.5;}
+.stat-face.back .stat-context strong{color:var(--teal); font-weight:500;}
+.stat-tile:hover .stat-face.front{border-color:var(--line-strong);}
+@media (hover:hover){
+  .stat-tile:hover .stat-tile-inner{transform:rotateY(180deg);}
+}
+
+/* ---------------- log ---------------- */
+.tag{font-family:var(--mono); font-size:0.72rem; color:var(--ink-faint);}
+.log{padding:48px 24px;}
+.log-grid{display:grid; grid-template-columns:200px 1fr; gap:40px;}
+.log-label h2{font-family:var(--serif); font-size:1.3rem; margin:10px 0 0; font-weight:600;}
+.log-body p{color:var(--ink-dim); max-width:62ch;}
+.log-body p:first-child{margin-top:0;}
+@media (max-width:720px){
+  .log-grid{grid-template-columns:1fr; gap:12px;}
+}
+
+/* ---------------- project sections ---------------- */
+.project{padding:56px 24px;}
+.project.alt{background:linear-gradient(180deg, transparent, rgba(255,255,255,0.015) 12%, rgba(255,255,255,0.015) 88%, transparent);}
+.project-head{max-width:680px; margin-bottom:28px;}
+.project-head h2{font-family:var(--serif); font-size:clamp(1.4rem,2.6vw,1.9rem); margin:10px 0 12px; font-weight:600;}
+.project-dek{color:var(--ink-dim); margin:0;}
+
+.panel{
+  border:1px solid var(--line); border-radius:12px; background:var(--panel);
+  padding:0; margin-bottom:28px; overflow:hidden;
+  perspective:1400px;
+}
+.panel-inner{
+  transform-style:preserve-3d; transition:transform .25s ease-out;
+  padding:22px 22px 8px;
+}
+.panel-caption{
+  border-top:1px solid var(--line); padding:12px 22px; font-family:var(--mono);
+  font-size:0.74rem; color:var(--ink-faint);
+}
+.panel canvas{width:100%; height:200px; display:block; border-radius:6px;}
+
+.project-body{display:grid; grid-template-columns:1.15fr 0.85fr; gap:36px;}
+@media (max-width:820px){.project-body{grid-template-columns:1fr;}}
+
+.col h3{font-family:var(--sans); font-size:0.92rem; font-weight:600; color:var(--ink); margin:0 0 10px; text-transform:none;}
+.col p{color:var(--ink-dim);}
+table.metrics{width:100%; border-collapse:collapse; margin:14px 0 16px; font-size:0.88rem;}
+table.metrics td{padding:9px 0; border-bottom:1px solid var(--line); color:var(--ink-dim);}
+table.metrics td:last-child{text-align:right; font-family:var(--mono); color:var(--ink); font-weight:500; white-space:nowrap; padding-left:12px;}
+.note{
+  border-left:2px solid var(--amber); padding:10px 0 10px 14px; margin-top:14px;
+  font-size:0.9rem; color:var(--ink-dim);
+}
+.note code{color:var(--ink);}
+.stack-list{list-style:none; margin:0 0 18px; padding:0; color:var(--ink-dim); font-size:0.92rem;}
+.stack-list li{padding:7px 0 7px 16px; border-bottom:1px solid var(--line); position:relative;}
+.stack-list li::before{content:"—"; position:absolute; left:0; color:var(--ink-faint);}
+.tags{display:flex; flex-wrap:wrap; gap:8px;}
+.tags span{
+  font-family:var(--mono); font-size:0.72rem; color:var(--ink-dim);
+  border:1px solid var(--line-strong); border-radius:5px; padding:4px 9px;
+}
+code{background:rgba(255,255,255,0.05); padding:1px 5px; border-radius:4px; font-family:var(--mono); font-size:0.87em;}
+
+/* ---------------- instruments ---------------- */
+.instruments{padding:56px 24px;}
+.instruments h2{font-family:var(--serif); font-size:1.5rem; margin:10px 0 26px; font-weight:600;}
+.instrument-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px 32px;}
+@media (max-width:820px){.instrument-grid{grid-template-columns:repeat(2,1fr);}}
+@media (max-width:520px){.instrument-grid{grid-template-columns:1fr;}}
+.instrument-grid h4{font-size:0.85rem; margin:0 0 8px; color:var(--ink); font-weight:600;}
+.instrument-grid p{margin:0; color:var(--ink-dim); font-size:0.9rem;}
+
+/* ---------------- contact ---------------- */
+.contact{padding:64px 24px 80px;}
+.contact h2{font-family:var(--serif); font-size:1.6rem; margin:10px 0 14px; font-weight:600;}
+.contact p{color:var(--ink-dim); max-width:52ch;}
+.contact-links{display:flex; flex-direction:column; gap:10px; margin-top:24px; font-family:var(--mono); font-size:0.92rem;}
+.contact-links a{text-decoration:none; color:var(--ink); border-bottom:1px solid var(--line-strong); padding-bottom:2px; width:fit-content; transition:border-color .15s, color .15s;}
+.contact-links a:hover{color:var(--amber); border-color:var(--amber);}
+
+.site-footer{padding:24px; border-top:1px solid var(--line);}
+.site-footer p{color:var(--ink-faint); font-size:0.8rem; margin:0;}
+
+@media (max-width:480px){
+  .wrap{padding:0 18px;}
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .panel-inner{padding:16px 16px 4px;}
+  .panel-caption{padding:10px 16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+
+<header class="site-header">
+  <div class="wrap header-row">
+    <a href="#top" class="wordmark">Gurcharan <span>Singh Nanra</span></a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="mainnav" id="mainNav">
+      <a href="#log">Log</a>
+      <a href="#work">Projects</a>
+      <a href="#instruments">Toolset</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero wrap">
+    <div class="hero-scene-holder"><canvas id="hero-canvas"></canvas></div>
+    <div class="hero-content">
+      <p class="kicker">Field notes — Electronics &amp; Computer Science, SAKEC · Second Year</p>
+      <h1>I build systems that read live data and act on it.</h1>
+      <p class="hero-sub">
+        Four independent builds spanning a retail ML pipeline, a physics-informed
+        sensor-calibration engine, a self-learning cache written in C, and a
+        concurrent trading simulator — together processing over 900,000 rows
+        of real and simulated data. Every metric on this page is pulled directly
+        from a saved run of the actual code, not estimated.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ STATS ============ -->
+  <section id="stats" class="stats-section wrap">
+    <div class="stats-head">
+      <h2>Career stats — tap or hover any tile for context</h2>
+      <span class="stats-hint">source: saved run logs</span>
+    </div>
+    <div class="stat-grid" id="statGrid"></div>
+  </section>
+
+  <!-- ============ LOG / ABOUT ============ -->
+  <section id="log" class="log wrap">
+    <div class="log-grid">
+      <div class="log-label">
+        <span class="tag">01</span>
+        <h2>About this notebook</h2>
+      </div>
+      <div class="log-body">
+        <p>
+          I'm a second-year Electronics &amp; Computer Science student at SAKEC,
+          working the seam between systems programming and machine learning —
+          the point where a model's prediction has to survive contact with a
+          real clock, a real cache, or a real sensor that drifts.
+        </p>
+        <p>
+          The four projects here were designed, built, and benchmarked
+          independently, outside coursework, over the past year. Each one is a
+          working prototype backed by a saved metrics file, not a slide-deck
+          claim. Where a project is a research-grade proof of concept rather
+          than production-hardened, that's stated plainly next to the numbers.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 1: ZENTHOS ============ -->
+  <section id="work" class="project wrap">
+    <div class="project-head">
+      <span class="tag">02 — retail analytics &amp; ML</span>
+      <h2>Zenthos BI — AI Command Center</h2>
+      <p class="project-dek">
+        An end-to-end retail intelligence pipeline: synthetic e-commerce data
+        generation, a MySQL warehouse, five trained ML models, and a live
+        executive dashboard built on top of it.
+      </p>
+    </div>
+
+    <div class="panel" data-tilt>
+      <div class="panel-inner"><canvas data-viz="bars" data-values="90.1,90.5,77.0" data-labels="Accuracy,Precision,Recall" data-color="#48b8ac"></canvas></div>
+      <p class="panel-caption">Held-out test performance — best-seller classifier, from pipeline_metrics.json</p>
+    </div>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          Generates a realistic Amazon-style retail dataset (orders, customers,
+          inventory, product catalog), loads it into MySQL, then trains a bank
+          of models on top: a best-seller classifier, a demand forecaster, a
+          price-elasticity recommender, an inventory optimizer, and an
+          executive summarization layer that turns model output into
+          plain-language recommendations. The dashboard is a from-scratch
+          HTML/JS front end, not a Power BI export.
+        </p>
+        <h3>Real numbers, from the actual run</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Orders generated &amp; loaded</td><td>500,372 rows</td></tr>
+            <tr><td>Customer records</td><td>50,001 rows</td></tr>
+            <tr><td>Product catalog (post-cleaning)</td><td>1,357 SKUs</td></tr>
+            <tr><td>Total records unified in the warehouse</td><td>551,730 rows</td></tr>
+            <tr><td>Best-seller classifier — held-out accuracy</td><td>90.1%</td></tr>
+            <tr><td>Best-seller classifier — precision / recall</td><td>90.5% / 77.0%</td></tr>
+            <tr><td>Train / test split</td><td>1,084 / 272 samples</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          The headline figure I'd defend in an interview is the 90.1% held-out
+          test accuracy from the saved <code>pipeline_metrics.json</code>
+          classification report — the live dashboard's telemetry-style numbers
+          are a UI display layer on top of it.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Python data generation &amp; cleaning scripts (<code>Python/</code>)</li>
+          <li>MySQL warehouse with a dedicated import pipeline</li>
+          <li>scikit-learn models: classifier + regressors for forecast/price/inventory (<code>AI/</code>)</li>
+          <li>A desktop control GUI (Tkinter) for running the pipeline end-to-end</li>
+          <li>Static HTML/CSS/JS executive dashboard, no external charting framework</li>
+        </ul>
+        <div class="tags">
+          <span>Python</span><span>scikit-learn</span><span>MySQL</span><span>Pandas</span><span>Tkinter</span><span>HTML/CSS/JS</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 2: AERIS ============ -->
+  <section class="project wrap alt">
+    <div class="project-head">
+      <span class="tag">03 — environmental sensing &amp; calibration</span>
+      <h2>AERIS — Physics-Informed Air Quality Calibration</h2>
+      <p class="project-dek">
+        Low-cost air quality sensors (the kind that cost ₹2,000 instead of
+        ₹20,00,000) drift badly. AERIS trains a calibration model that
+        corrects them against real government reference monitors, then
+        streams the correction live.
+      </p>
+    </div>
+
+    <div class="panel" data-tilt>
+      <div class="panel-inner"><canvas data-viz="dropline" data-values="111.8,1.4" data-labels="Raw sensor MAE,Calibrated MAE" data-color="#e8a33d"></canvas></div>
+      <p class="panel-caption">Raw vs. calibrated error, µg/m³ — live replay through the trained LightGBM model</p>
+    </div>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          Stage A pulls two years of regional reanalysis weather/pollution data
+          (Open-Meteo CAMS + ERA5) and pairs it against real ground station
+          readings from CPCB, MPCB, and IITM monitors across Mumbai. Stage B
+          simulates a low-cost sensor's physical response and drift
+          characteristics. Stage C trains a LightGBM calibration model that
+          maps "what the cheap sensor reads" to "what the government monitor
+          would read," plus a separate multi-horizon forecasting model. A
+          FastAPI service replays the dataset in real time over a WebSocket so
+          the dashboard shows raw vs. calibrated vs. ground-truth as a live
+          stream, including drift-alert detection.
+        </p>
+        <h3>Real numbers, from the live run</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Regional reanalysis records (Tier 1, 2-yr hourly)</td><td>175,440 rows</td></tr>
+            <tr><td>Real ground-station records (Tier 2, 8 stations)</td><td>126,997 rows</td></tr>
+            <tr><td>Combined climate + sensor dataset</td><td>302,437 rows</td></tr>
+            <tr><td>Paired overlap timestamps for calibration</td><td>50,372 hours</td></tr>
+            <tr><td>Raw sensor MAE vs. calibrated MAE (live demo run)</td><td>111.8 → 1.4 µg/m³</td></tr>
+            <tr><td>Cumulative error reduction from calibration</td><td>98.7%</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          Built as a research-grade simulation by design: the "sensor" stream
+          is a physics-based model replaying the Stage B dataset, architected
+          so it can swap to a real ESP32 + PMS5003/MQ135 sensor later without
+          touching the ML or server code.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Two-tier data acquisition &amp; merge pipeline (<code>a1</code>–<code>a3</code> stages)</li>
+          <li>Sensor physics simulation with induced drift (Stage B)</li>
+          <li>LightGBM calibration model + separate multi-horizon forecasting model</li>
+          <li>FastAPI backend with an async WebSocket broadcaster</li>
+          <li>SQLite for local persistence; designed for optional cloud sync</li>
+          <li>Vanilla JS + Chart.js live dashboard, CPCB AQI computed in real time</li>
+        </ul>
+        <div class="tags">
+          <span>Python</span><span>LightGBM</span><span>FastAPI</span><span>WebSockets</span><span>Pandas</span><span>SQLite</span><span>Chart.js</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 3: NEUROCACHE ============ -->
+  <section class="project wrap">
+    <div class="project-head">
+      <span class="tag">04 — systems programming &amp; ML</span>
+      <h2>NeuroCache — A Self-Learning Cache in C</h2>
+      <p class="project-dek">
+        Standard caches evict by fixed rules — least-recently-used, or
+        least-frequently-used. NeuroCache replaces the rule with a small
+        online model that predicts reuse probability per key, ranked live by
+        an AVL tree.
+      </p>
+    </div>
+
+    <div class="panel" data-tilt>
+      <div class="panel-inner"><canvas data-viz="bars" data-values="91.6,52.5,91.2" data-labels="LRU,LFU,NeuroCache" data-color="#e8a33d"></canvas></div>
+      <p class="panel-caption">Hit rate under a concept-drift workload, 50,000-event benchmark</p>
+    </div>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          NeuroCache covers a full data-structures-and-algorithms syllabus
+          honestly — twelve structures (stacks, queues, singly and doubly
+          linked lists, an AVL tree, hash tables with both chaining and open
+          addressing, graphs with BFS/DFS/topo-sort, and four sorting
+          algorithms) all doing real work inside one caching engine, not built
+          as separate toy demos. On top of that sits the actual idea: a
+          logistic-regression-style online learner scores each cached key's
+          reuse probability, and an AVL tree keeps eviction candidates ranked
+          in O(log n) as those scores update. A companion Python daemon
+          applies the same principle to real OS process priority and RAM
+          trimming, cross-platform (Windows/Linux).
+        </p>
+        <h3>Real numbers, from the project's own benchmark</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Benchmark size</td><td>50,000 access events</td></tr>
+            <tr><td>Hit rate — Zipfian workload (LRU / LFU / NeuroCache)</td><td>93.7% / 94.9% / 94.7%</td></tr>
+            <tr><td>Hit rate — concept-drift workload (LRU / LFU / NeuroCache)</td><td>91.6% / 52.5% / 91.2%</td></tr>
+            <tr><td>NeuroCache advantage over LFU under drift</td><td>+38.7 points</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          NeuroCache runs essentially tied with a tuned LFU on a stable Zipfian
+          workload — the result worth highlighting is that it holds
+          LRU-level adaptability the moment the access pattern shifts, exactly
+          where LFU collapses.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Pure C core: 12 data structures, no external DSA libraries</li>
+          <li>AVL tree keeps eviction order ranked as ML scores update live</li>
+          <li>Python trace generators (Zipfian, drift, uniform) for reproducible benchmarks</li>
+          <li>Cross-platform system daemon applying the same model to OS process scheduling</li>
+          <li>Tkinter GUI for live visualization and side-by-side comparison</li>
+        </ul>
+        <div class="tags">
+          <span>C</span><span>Python</span><span>AVL Trees</span><span>Hashing</span><span>Tkinter</span><span>Online SGD</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROJECT 4: TRADING SIM ============ -->
+  <section class="project wrap alt">
+    <div class="project-head">
+      <span class="tag">05 — concurrent systems, Java</span>
+      <h2>Real-Time Multithreaded Stock Trading Simulator</h2>
+      <p class="project-dek">
+        A Java Swing desktop app simulating a live market: independent price
+        threads, an order-matching engine, and a persisted trade history —
+        built to be honest about its concurrency, not just its UI.
+      </p>
+    </div>
+
+    <div class="panel" data-tilt>
+      <div class="panel-inner"><canvas data-viz="threads"></canvas></div>
+      <p class="panel-caption">12 independently-threaded instruments, each on its own GBM price walk</p>
+    </div>
+
+    <div class="project-body">
+      <div class="col">
+        <h3>What it does</h3>
+        <p>
+          Each of twelve simulated instruments (stocks and a few crypto
+          tickers) runs its own scheduled price thread following a geometric
+          Brownian motion random walk, ticking every 1.5 seconds independently
+          of the UI thread. Orders go through a priority-queue-based limit
+          order book that matches trades without blocking the interface, and
+          every execution is persisted to a database asynchronously so the
+          trade log never stalls the Swing event thread.
+        </p>
+        <h3>What I'd highlight in an interview</h3>
+        <table class="metrics">
+          <tbody>
+            <tr><td>Simulated instruments, independently threaded</td><td>12</td></tr>
+            <tr><td>Price update interval per instrument</td><td>1.5s (GBM walk)</td></tr>
+            <tr><td>Named reentrant locks guarding shared state</td><td>4</td></tr>
+            <tr><td>Persistence layer</td><td>Embedded H2 (MySQL-compatible mode)</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          The interesting part of this project isn't the GUI, it's the locking
+          discipline underneath it — a dedicated lock per stock's price
+          history, per trader's portfolio, and per order book, so concurrent
+          order execution can't corrupt shared state or double-fill an order.
+        </p>
+      </div>
+      <div class="col">
+        <h3>How it's built</h3>
+        <ul class="stack-list">
+          <li>Java Swing GUI, strictly separated from the market simulation logic</li>
+          <li><code>ScheduledExecutorService</code> per-stock price threads</li>
+          <li><code>PriorityQueue</code>-based order book for limit-order matching</li>
+          <li><code>ReentrantLock</code>s guarding stock, trader, and order-book state</li>
+          <li>Embedded H2 database (MySQL-compatible mode) for trade persistence</li>
+          <li>Custom checked exceptions for invalid orders / insufficient funds</li>
+        </ul>
+        <div class="tags">
+          <span>Java</span><span>Swing</span><span>Concurrency</span><span>JDBC</span><span>H2 / MySQL</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TOOLSET ============ -->
+  <section id="instruments" class="instruments wrap">
+    <span class="tag">06</span>
+    <h2>Toolset, by way of these four projects</h2>
+    <div class="instrument-grid">
+      <div>
+        <h4>Languages</h4>
+        <p>Python, Java, C, SQL</p>
+      </div>
+      <div>
+        <h4>Machine learning</h4>
+        <p>scikit-learn, LightGBM, feature engineering, online/SGD learning, model evaluation</p>
+      </div>
+      <div>
+        <h4>Data &amp; backend</h4>
+        <p>Pandas, MySQL, SQLite, FastAPI, WebSockets, ETL pipeline design</p>
+      </div>
+      <div>
+        <h4>Systems</h4>
+        <p>Core data structures in C, multithreading &amp; locking in Java, cross-platform process control</p>
+      </div>
+      <div>
+        <h4>Interfaces</h4>
+        <p>Tkinter, Java Swing, vanilla HTML/CSS/JS dashboards, Chart.js</p>
+      </div>
+      <div>
+        <h4>Currently learning</h4>
+        <p>Deeper time-series forecasting, model deployment/serving, and cleaner MLOps practice around these projects</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section id="contact" class="contact wrap">
+    <span class="tag">07</span>
+    <h2>Get in touch</h2>
+    <p>
+      Open to internship and project opportunities in AI/ML and applied
+      systems work.
+    </p>
+    <div class="contact-links">
+      <a href="mailto:gurcharan.nanra25@sakec.ac.in">gurcharan.nanra25@sakec.ac.in</a>
+      <a href="https://github.com/guri29-sudo" target="_blank" rel="noopener">github.com/guri29-sudo</a>
+      <a href="https://www.linkedin.com/in/gurcharan-singh-nanra-1a5ba2205/" target="_blank" rel="noopener">linkedin.com/in/gurcharan-singh-nanra</a>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer wrap">
+  <p>Built &amp; documented from the original project source by Gurcharan Singh Nanra — every metric on this page is pulled from a saved run of the actual code.</p>
+</footer>
+
+<script>
+/* ---------------- mobile nav ---------------- */
+const navToggle = document.getElementById('navToggle');
+const mainNav = document.getElementById('mainNav');
+navToggle.addEventListener('click', () => {
+  const open = mainNav.classList.toggle('open');
+  navToggle.setAttribute('aria-expanded', open);
+  navToggle.textContent = open ? '✕' : '☰';
+});
+mainNav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  mainNav.classList.remove('open');
+  navToggle.setAttribute('aria-expanded', false);
+  navToggle.textContent = '☰';
+}));
+
+/* ---------------- stat tiles data ---------------- */
+const stats = [
+  {value:'902,810+', label:'Total data processed, all projects', context:'Real and simulated rows across all four builds — orders, sensor readings, benchmark events, and reanalysis climate data combined.'},
+  {value:'4', label:'Projects shipped', context:'Independent builds, each with its own saved metrics file backing the numbers shown on this page.'},
+  {value:'7', label:'ML models trained', context:'Classifier, demand forecaster, price recommender, inventory optimizer, summarizer, calibration model, and forecasting model.'},
+  {value:'98.7%', label:'Best error reduction (AERIS)', context:'Sensor MAE cut from 111.8 to 1.4 µg/m³ by the trained LightGBM calibration model.'},
+  {value:'551,730', label:'Rows unified in one warehouse', context:'Zenthos BI: orders, customers, and product catalog loaded into a single MySQL warehouse.'},
+  {value:'302,437', label:'Climate + sensor rows fused', context:'AERIS: two years of reanalysis data merged with real CPCB/MPCB/IITM ground-station readings.'},
+  {value:'50,000', label:'Cache events benchmarked', context:'NeuroCache: Zipfian, drift, and uniform workloads run against LRU, LFU, and the learned policy.'},
+  {value:'12', label:'Core data structures in C', context:'Stacks, queues, linked lists, an AVL tree, hash tables (chaining + open addressing), graphs, and four sorts — all load-bearing, not toy demos.'},
+  {value:'12', label:'Threaded market instruments', context:'Trading simulator: each instrument runs its own GBM price walk on an independent scheduled thread.'},
+  {value:'4', label:'Dedicated lock domains', context:'Named ReentrantLocks isolating stock price history, trader portfolios, and the order book from race conditions.'},
+];
+const grid = document.getElementById('statGrid');
+stats.forEach(s => {
+  const tile = document.createElement('div');
+  tile.className = 'stat-tile';
+  tile.innerHTML = `
+    <div class="stat-tile-inner">
+      <div class="stat-face front">
+        <div class="stat-value">${s.value}</div>
+        <div class="stat-label">${s.label}</div>
+      </div>
+      <div class="stat-face back">
+        <div class="stat-context">${s.context}</div>
+      </div>
+    </div>`;
+  tile.addEventListener('click', () => tile.classList.toggle('flipped'));
+  grid.appendChild(tile);
+});
+
+/* ---------------- 3D hero scene (Three.js) ---------------- */
+(function heroScene(){
+  const holder = document.querySelector('.hero-scene-holder');
+  const canvas = document.getElementById('hero-canvas');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!window.THREE) return;
+
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  camera.position.z = 5.2;
+
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const geo = new THREE.IcosahedronGeometry(1.7, 1);
+  const wire = new THREE.LineSegments(
+    new THREE.WireframeGeometry(geo),
+    new THREE.LineBasicMaterial({color:0x48b8ac, transparent:true, opacity:0.55})
+  );
+  group.add(wire);
+
+  const pointsGeo = new THREE.BufferGeometry();
+  const count = 220;
+  const positions = new Float32Array(count*3);
+  for (let i=0;i<count;i++){
+    const r = 2.05 + Math.random()*0.35;
+    const theta = Math.random()*Math.PI*2;
+    const phi = Math.acos((Math.random()*2)-1);
+    positions[i*3] = r*Math.sin(phi)*Math.cos(theta);
+    positions[i*3+1] = r*Math.sin(phi)*Math.sin(theta);
+    positions[i*3+2] = r*Math.cos(phi);
+  }
+  pointsGeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+  const points = new THREE.Points(pointsGeo, new THREE.PointsMaterial({color:0xe8a33d, size:0.035, transparent:true, opacity:0.85}));
+  group.add(points);
+
+  let targetX = 0, targetY = 0;
+  window.addEventListener('pointermove', (e) => {
+    targetX = (e.clientX / window.innerWidth - 0.5) * 0.6;
+    targetY = (e.clientY / window.innerHeight - 0.5) * 0.6;
+  });
+
+  function resize(){
+    const w = holder.clientWidth, h = holder.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    camera.aspect = w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  let raf;
+  function animate(){
+    group.rotation.y += reduced ? 0 : 0.0018;
+    group.rotation.x += (targetY - group.rotation.x) * 0.03;
+    group.rotation.y += (targetX - group.rotation.y) * 0.015;
+    renderer.render(scene, camera);
+    raf = requestAnimationFrame(animate);
+  }
+  animate();
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting) { if(!raf) animate(); }
+      else { cancelAnimationFrame(raf); raf = null; }
+    });
+  });
+  io.observe(holder);
+})();
+
+/* ---------------- 3D tilt panels ---------------- */
+if (window.matchMedia('(hover:hover) and (pointer:fine)').matches){
+  document.querySelectorAll('[data-tilt]').forEach(panel => {
+    const inner = panel.querySelector('.panel-inner');
+    panel.addEventListener('pointermove', (e) => {
+      const r = panel.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      inner.style.transform = `rotateX(${(-py*6).toFixed(2)}deg) rotateY(${(px*8).toFixed(2)}deg)`;
+    });
+    panel.addEventListener('pointerleave', () => { inner.style.transform = 'rotateX(0deg) rotateY(0deg)'; });
+  });
+}
+
+/* ---------------- mini canvas visualizations ---------------- */
+function setupCanvas(cv){
+  const dpr = Math.min(window.devicePixelRatio, 2);
+  const rect = cv.getBoundingClientRect();
+  cv.width = rect.width * dpr;
+  cv.height = 200 * dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return {ctx, w:rect.width, h:200};
+}
+
+function animateBars(cv){
+  const {ctx,w,h} = setupCanvas(cv);
+  const values = cv.dataset.values.split(',').map(Number);
+  const labels = cv.dataset.labels.split(',');
+  const color = cv.dataset.color;
+  let progress = 0;
+  function frame(){
+    progress = Math.min(1, progress + 0.03);
+    ctx.clearRect(0,0,w,h);
+    const gap = 28, barW = (w - gap*(values.length+1)) / values.length;
+    values.forEach((v,i) => {
+      const maxH = h - 46;
+      const barH = (v/100) * maxH * progress;
+      const x = gap + i*(barW+gap);
+      const y = h - 30 - barH;
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x, y, barW, barH);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#e7ecf6';
+      ctx.font = '600 13px IBM Plex Mono, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText((v*progress).toFixed(1)+'%', x+barW/2, y-8);
+      ctx.fillStyle = '#9aa4b8';
+      ctx.font = '11px Inter, sans-serif';
+      ctx.fillText(labels[i], x+barW/2, h-10);
+    });
+    if (progress < 1) requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function animateDropline(cv){
+  const {ctx,w,h} = setupCanvas(cv);
+  const [from,to] = cv.dataset.values.split(',').map(Number);
+  const labels = cv.dataset.labels.split(',');
+  const color = cv.dataset.color;
+  const padX = 40, padY = 30;
+  const maxV = from;
+  let progress = 0;
+  function frame(){
+    progress = Math.min(1, progress + 0.025);
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle = 'rgba(230,236,247,0.12)';
+    ctx.beginPath(); ctx.moveTo(padX, h-padY); ctx.lineTo(w-padX, h-padY); ctx.stroke();
+
+    const x0=padX, x1=w-padX;
+    const y0 = h-padY - (from/maxV)*(h-padY*2.2);
+    const yEnd = h-padY - (to/maxV)*(h-padY*2.2);
+    const xCur = x0 + (x1-x0)*progress;
+    const yCur = y0 + (yEnd-y0)*progress;
+
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(xCur,yCur); ctx.stroke();
+
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(xCur,yCur,4,0,Math.PI*2); ctx.fill();
+
+    ctx.fillStyle = '#e7ecf6'; ctx.font='600 13px IBM Plex Mono, monospace'; ctx.textAlign='left';
+    ctx.fillText(from.toFixed(1), x0, y0-10);
+    ctx.textAlign='right';
+    ctx.fillText((from + (to-from)*progress).toFixed(1), xCur, yCur-10<12?yCur+20:yCur-10);
+
+    ctx.fillStyle = '#9aa4b8'; ctx.font='11px Inter, sans-serif'; ctx.textAlign='left';
+    ctx.fillText(labels[0], x0, h-10);
+    ctx.textAlign='right';
+    ctx.fillText(labels[1], x1, h-10);
+
+    if (progress < 1) requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function animateThreads(cv){
+  const {ctx,w,h} = setupCanvas(cv);
+  const colors = ['#48b8ac','#e8a33d','#7d8cff','#e26d6d','#6bd08a','#c48be0'];
+  const lines = 6;
+  let t = 0;
+  function frame(){
+    t += 0.018;
+    ctx.clearRect(0,0,w,h);
+    for(let i=0;i<lines;i++){
+      ctx.strokeStyle = colors[i % colors.length];
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      const freq = 0.9 + i*0.35;
+      const phase = i*1.3;
+      const amp = (h*0.32) / (1 + i*0.15);
+      const baseline = h/2 + (i - lines/2) * 4;
+      for(let x=0; x<=w; x+=4){
+        const nx = x/w;
+        const y = baseline + Math.sin(nx*8*freq + t*2 + phase) * amp * (0.4+0.6*Math.sin(nx*3+i));
+        if (x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+document.querySelectorAll('canvas[data-viz]').forEach(cv => {
+  const io = new IntersectionObserver((entries, obs) => {
+    entries.forEach(en => {
+      if (en.isIntersecting){
+        const kind = cv.dataset.viz;
+        if (kind === 'bars') animateBars(cv);
+        else if (kind === 'dropline') animateDropline(cv);
+        else if (kind === 'threads') animateThreads(cv);
+        obs.unobserve(cv);
+      }
+    });
+  }, {threshold:0.3});
+  io.observe(cv);
+});
+</script>
+</body>
+</html>
